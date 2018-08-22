@@ -1,0 +1,38 @@
+policy_id, 13426
+c00, 2658
+c01, 2657
+c02, 3231
+c03, 13
+c04, 1744
+c05, 372
+c06, 1368
+c07, "outpatient,hospitalization"
+c08, "outpatient,hospitalization"
+c09, ,
+c10, 正常赔付
+v00, 15703.9
+v01, 2334.42
+v02, 15693.9
+z00, 2018-03-09 16:57:07
+z01, 2018-01-12 00:00:00
+z02, 2018-03-23 14:48:27
+z03, 2018-03-27 14:27:06
+
+
+c10: kind of payment
+"报案注销" | "Report cancellation"
+"拒赔" | "rejection"
+"正常赔付" | "normal payout" (most renew)
+"转人工审核" | "Transfer to manual review"
+c
+snue08: kind of treatment
+"住院医疗" |  "hospitalization"
+"hospitalization,outpatient" |  "hospitalization, outpatient"
+"outpatient,hospitalization" |  "outpatient, hospitalization"
+"医疗费用（门急诊）" |  "Medical expenses (door emergency)"
+
+c07: kind of treat ment
+"outpatient"
+"hospitalization,outpatient"
+"outpatient,hospitalization"
+"hospitalization"

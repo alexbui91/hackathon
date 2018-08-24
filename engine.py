@@ -127,7 +127,7 @@ class SparkEngine():
     def switch_dict(self, data):
         c_dict = {}
         for c in data:
-            c_dict[int("policy_id")] = c["features"]
+            c_dict[int(c["policy_id"])] = c["features"]
         return c_dict
 
     def process_vectors(self):

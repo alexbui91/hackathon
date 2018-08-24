@@ -10,7 +10,7 @@ import properties as pr
 class Model():
 
 
-    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01, is_test=False, net=1):
+    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01, is_test=False, net=1, loss_function="sigmoid"):
         self.initializer = tf.contrib.layers.xavier_initializer()
         self.batch_size = batch_size
         self.hidden_layer_size = hidden_layer_size
@@ -22,6 +22,7 @@ class Model():
         self.customer_length = pr.max_customer
         self.is_test=is_test
         self.net = net
+        self.loss_function = loss_function
 
     def init_ops(self):
         self.add_placeholders()
@@ -48,26 +49,34 @@ class Model():
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
             elif self.net == 1:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.tanh)
-            else self.net == 2:
+            elif self.net == 2:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_2", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.relu)
-            else self.net == 3:
+            elif self.net == 3:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
-                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
-            else self.net == 4:
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_2", activation=tf.nn.tanh)
+            else:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
-                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_3", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_2", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
 
-            output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
-            if not self.is_test:
-                l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
-                opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            if self.loss_function = "softmax":
+                output = tf.squeeze(tf.layers.dense(hidden, units=2, name="output_hidden", activation=None))
+                l = tf.losses.softmax_cross_entropy(self.pred_placeholder, output)
                 self.losses = tf.reduce_mean(l)
                 gd = opt.compute_gradients(self.losses)
-                self.train_op = opt.apply_gradients(gd)
-            self.preds = tf.nn.sigmoid(output)
+                probs = tf.nn.softmax(output)
+                self.preds = tf.argmax(probs)
+            else:
+                output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
+                if not self.is_test:
+                    l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
+                    self.losses = tf.reduce_mean(l)
+                    gd = opt.compute_gradients(self.losses)
+                    self.train_op = opt.apply_gradients(gd)
+                self.preds = tf.nn.sigmoid(output)
 
     def get_attention(self, inputs):
         # batch_size x length x 128
@@ -111,8 +120,11 @@ class Model():
                 sys.stdout.write('\r{} / {} loss = {}'.format(
                     step, total_steps, total_loss / (step + 1)))
                 sys.stdout.flush()
-
-            preds += [1 if x >= 0.5 else 0 for x in pred]
+            
+            if self.loss_function == "softmax":
+                preds += pred
+            else:
+                preds += [1 if x >= 0.5 else 0 for x in pred]
         
         if not self.is_test:
             sys.stdout.write("\r")

@@ -10,7 +10,7 @@ import time
 import argparse
 
 from model import Model
-# from engine import SparkEngine
+from engine import SparkEngine
 import utils
 import properties as p
 
@@ -49,7 +49,7 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
     configs = tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)
     return configs
 
-def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1):
+def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1, loss_function="sigmoid"):
     if not url_feature:
         engine = SparkEngine()
         train_data = engine.get_train_data(policy_one_hot)
@@ -58,7 +58,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
     else:
         train_data = utils.load_file(url_feature)
         train, valid = split_data(train_data, 0.8)
-    model = Model(net=net)
+    model = Model(net=net, loss_function=loss_function)
     with tf.device('/gpu:3'):
         model.init_ops()
         print('==> initializing variables')
@@ -91,7 +91,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
                 best_val_loss = valid_loss
                 best_val_epoch = i
                 print('Saving weights')
-                saver.save(session, 'weights/%s.weights' % prefix)
+                saver.save(session, 'weights/%s_%s.weights' % (prefix, net))
 
             if (i - best_val_epoch) > p.early_stopping:
                 break
@@ -148,11 +148,11 @@ def convert_prediction(pred_path):
             x_ = x.rstrip("\n")
             y_ = x.split(", ")
             pr_dict[int(y_[0])] = int(y_[1])
-    tmp = ""
+    tmp = "policy_id,label"
     for x in data:
         tmp += "%i, %i\n" % (x, pr_dict[x])
     name = pred_path.split(".txt")[0]
-    save_file("%s_converted.txt" % name, tmp)
+    save_file("%s_converted.csv" % name, tmp)
 
 
 if __name__ == "__main__":
@@ -163,11 +163,17 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test", type=int, default=0)
     parser.add_argument("-o", "--one_hot_policy", type=int, default=1)
     parser.add_argument("-n", "--net", type=int, default=1)
-
+    parser.add_argument("-l", "--loss_function", default="sigmoid")
+    """
+    for training:
+    python main.py -f data/train_data_None_net.bin -n 3 -p "complex_net_tanh" -o 0
+    for testing:
+    python main.py -f data/test_data.bin -t 1 -n 2 -p "complex_2" -o 0 -w weights/complex_net_2.weights
+    """
     args = parser.parse_args()
     if args.test == 1:
         test(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
     elif args.test == 0:
-        main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
+        main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net, args.loss_function)
     else:
         convert_prediction(args.data_path)

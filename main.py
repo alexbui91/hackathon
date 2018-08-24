@@ -97,8 +97,10 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
                 print("using f1")
                 # using f1 to be the stopping point instead
                 if vf1_score > best_score or valid_loss < best_val_loss:
-                    best_score = vf1_score
-                    best_val_loss = valid_loss
+                    if vf1_score > best_score:
+                        best_score = vf1_score
+                    if valid_loss < best_val_loss
+                        best_val_loss = valid_loss
                     best_val_epoch = i
                     print('Saving weights')
                     saver.save(session, 'weights/%s_%s.weights' % (prefix, net))

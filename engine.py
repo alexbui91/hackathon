@@ -167,12 +167,11 @@ class SparkEngine():
                     .withColumn("v04", self.udf_float(col("v04")).cast("double"))\
                     .na.fill(0, pint)\
                     .na.fill(0.0, self.getDoubleType(self.policy_schema))
-        policy.show()
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
         #policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
         
-        policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
-        policy_norm = policy_assem.transform(policy_norm)
+        # policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
+        # policy_norm = policy_assem.transform(policy_norm)
 
         renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
 
@@ -182,12 +181,12 @@ class SparkEngine():
         policy_df = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
                     .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
                     .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
-                    .select("renewal.*", policy_norm.all_features, claim_.cl_features, customer_.cus_features)
+                    .select("renewal.*", policy_norm.features, claim_.cl_features, customer_.cus_features)
 
         test_policy_df = policy_norm.join(results, [policy.policy_id == results.policy_id])\
                     .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
                     .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
-                    .select(results.policy_id, policy_norm.all_features, claim_.cl_features, customer_.cus_features)
+                    .select(results.policy_id, policy_norm.features, claim_.cl_features, customer_.cus_features)
 
         policies = policy_df.collect()
         test_policies = test_policy_df.collect()

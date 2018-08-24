@@ -49,7 +49,7 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
     configs = tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)
     return configs
 
-def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
+def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1):
     if not url_feature:
         engine = SparkEngine()
         train_data = engine.get_train_data()
@@ -57,7 +57,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
     else:
         train_data = utils.load_file(url_feature)
     train, valid = split_data(train_data, 0.8)
-    model = Model()
+    model = Model(net=net)
     with tf.device('/gpu:3'):
         model.init_ops()
         print('==> initializing variables')
@@ -75,7 +75,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
 
         if url_weight:
             print('==> restoring weights')
-            saver.restore(session, '%s' % url_weight)
+            saver.restore(session, '%s_%s' % (url_weight, net))
 
         print('==> starting training')
         for i in xrange(p.total_iteration):
@@ -103,7 +103,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
         # save_file("prediction.txt", tmp)
 
 
-def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
+def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1):
     if not url_feature:
         engine = SparkEngine()
         test_data = engine.get_test_data(policy_one_hot)
@@ -114,7 +114,7 @@ def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
     policies, claims, customers, _, policy_ids = test_data
     policies, claims, customers, policy_ids = np.asarray(policies, dtype=np.float32), np.asarray(claims, dtype=np.float32), np.asarray(customers, dtype=np.float32), np.asarray(policy_ids, dtype=np.int32)
     test_data = (policies, claims, customers, [])
-    model = Model(batch_size=1, is_test=True)
+    model = Model(batch_size=1, is_test=True, net=net)
     with tf.device('/gpu:3'):
         model.init_ops()
         print('==> initializing variables')
@@ -141,9 +141,10 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--weight")
     parser.add_argument("-t", "--test", type=int, default=0)
     parser.add_argument("-o", "--one_hot_policy", type=int, default=1)
+    parser.add_argument("-n", "--net", type=int, default=1)
 
     args = parser.parse_args()
     if args.test:
-        test(args.prefix, args.data_path, args.weight, args.one_hot_policy)
+        test(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
     else:
-        main(args.prefix, args.data_path, args.weight, args.one_hot_policy)
+        main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)

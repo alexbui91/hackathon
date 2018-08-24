@@ -10,7 +10,7 @@ import properties as pr
 class Model():
 
 
-    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01, is_test=False):
+    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01, is_test=False, net=1):
         self.initializer = tf.contrib.layers.xavier_initializer()
         self.batch_size = batch_size
         self.hidden_layer_size = hidden_layer_size
@@ -21,6 +21,7 @@ class Model():
         self.claim_length = pr.max_claim
         self.customer_length = pr.max_customer
         self.is_test=is_test
+        self.net = net
 
     def init_ops(self):
         self.add_placeholders()
@@ -43,7 +44,15 @@ class Model():
                 cus_a = self.get_attention(self.customer)
 
             inputs = tf.concat([self.policy, cl_a, cus_a], axis=1)
-            hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
+            if self.net == 0:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
+            elif self.net == 1:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.tanh)
+            else:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size/2, name="policy_hidden", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size/4, name="policy_hidden", activation=tf.nn.relu)
+
             output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
             if not self.is_test:
                 l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
@@ -101,11 +110,10 @@ class Model():
         if not self.is_test:
             sys.stdout.write("\r")
             end = total_steps * self.batch_size
-            if not self.is_test:
-                labels = labels[:end]
-                score = f1_score(labels, preds, average="binary")
-            else: 
-                score = 0
+            labels = labels[:end]
+            score = f1_score(labels, preds, average="binary")
+        else: 
+            score = 0
         
         if train_writer:
             if total_steps:

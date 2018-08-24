@@ -2,7 +2,7 @@ from __future__ import print_function
 from __future__ import division
 
 import tensorflow as tf
-import numpy as numpy
+import numpy as np
 from sklearn.metrics import f1_score
 import sys
 import properties as pr
@@ -79,6 +79,8 @@ class Model():
             ct = customer[index]
             clt = claim[index]
             lt = labels[index]
+            print(np.shape(ct))
+            print(np.shape(clt))
             feed = {
                 self.policy: pt,
                 self.claim: clt,

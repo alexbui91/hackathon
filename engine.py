@@ -103,7 +103,7 @@ class SparkEngine():
         labels = []
         m, n = 5, 15
         c_dims = 36
-        cl_dims = 15
+        cl_dims = 22
         for p in policies:
             p_v = [float(x) for x in p["all_features"]]
             p_id = int(p["policy_id"])
@@ -127,7 +127,7 @@ class SparkEngine():
     def switch_dict(self, data):
         c_dict = {}
         for c in data:
-            c_dict[int("policy_id")] = c["cus_features"]
+            c_dict[int("policy_id")] = c["features"]
         return c_dict
 
     def process_vectors(self):
@@ -197,7 +197,7 @@ class SparkEngine():
 
         claim_data = claim_.collect()
         customer_data = customer_.collect()
-        print(len(customer_data[0]["features"]))
+
         claim_dict = self.switch_dict(claim_data)
         customer_dict = self.switch_dict(customer_data)
 

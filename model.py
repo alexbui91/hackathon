@@ -10,7 +10,7 @@ import properties as pr
 class Model():
 
 
-    def __init__(self, hidden_layer_size=128, batch_size=32, learning_rate=0.01):
+    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01):
         self.initializer = tf.contrib.layers.xavier_initializer()
         self.batch_size = batch_size
         self.hidden_layer_size = hidden_layer_size
@@ -43,13 +43,13 @@ class Model():
 
             inputs = tf.concat([self.policy, cl_a, cus_a], axis=1)
             hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
-            output = tf.squeeze(tf.layers.dense(inputs, units=1, name="output_hidden", activation=None))
+            output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
             l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
             opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.losses = tf.reduce_mean(l)
             gd = opt.compute_gradients(self.losses)
             self.train_op = opt.apply_gradients(gd)
-            self.preds = tf.nn.softmax(output)
+            self.preds = tf.argmax(tf.nn.softmax(output), 1)
 
     def get_attention(self, inputs):
         # batch_size x length x 128
@@ -93,8 +93,8 @@ class Model():
                 sys.stdout.write('\r{} / {} loss = {}'.format(
                     step, total_steps, total_loss / (step + 1)))
                 sys.stdout.flush()
-            else:
-                preds += pred
+
+            preds += pred.tolist()
         
         if train:
             sys.stdout.write("\r")

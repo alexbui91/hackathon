@@ -17,12 +17,10 @@ class SparkEngine():
                     "c17","c18","c19","c20","c21","c22","c23","c24","c25","c26","c27","v00","v01","v02","v03","z00","z01","z02","z03","z04", \
                     "z05","z06","z07","z08","z09"]
         policy_col_t = [StructField(x, IntegerType(), True) for x in self.policy_cols[:19]]  \
-                    +  [StructField(x, StringType(), True) for x in self.policy_cols[19:27]] \
-                    +  [StructField(x, DoubleType(), True) for x in self.policy_cols[27:33]] \
-                    +  [StructField(x, StringType(), True) for x in self.policy_cols[33:]]
+                    +  [StructField(x, StringType(), True) for x in self.policy_cols[19:]]
 
         self.policy_schema = StructType(policy_col_t)
-        self.policy_cols_norm = self.policy_cols[1:19] + ["v00","v01","v02","v03"]
+        self.policy_cols_norm = self.policy_cols[1:19] + ["v00","v01","v02","v03", "v04"]
         # "c12", "c13", "c14", "c15", "c16"
         self.policy_cols_onehot = ["c12"]
 
@@ -162,9 +160,14 @@ class SparkEngine():
         del pint[0]
         policy = self.spark.read.format("csv").option("header", "true").schema(self.policy_schema).load(p3)\
                     .filter(col("policy_id").isNotNull()) \
+                    .withColumn("v00", self.udf_float(col("v00")).cast("double"))\
+                    .withColumn("v01", self.udf_float(col("v01")).cast("double"))\
+                    .withColumn("v02", self.udf_float(col("v02")).cast("double"))\
+                    .withColumn("v03", self.udf_float(col("v03")).cast("double"))\
+                    .withColumn("v04", self.udf_float(col("v04")).cast("double"))\
                     .na.fill(0, pint)\
                     .na.fill(0.0, self.getDoubleType(self.policy_schema))
-        
+        policy.show()
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
         #policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
         

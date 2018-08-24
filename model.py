@@ -62,16 +62,16 @@ class Model():
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
 
             opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            if self.loss_function = "softmax":
-                hidden = tf.nn.dropout(hidden, self.dropout_placeholder)
+            if self.loss_function == "softmax":
                 output = tf.squeeze(tf.layers.dense(hidden, units=2, name="output_hidden", activation=None))
                 if not self.is_test:
+                    hidden = tf.nn.dropout(hidden, self.dropout_placeholder)
                     l = tf.losses.sparse_softmax_cross_entropy(self.pred_labels, output)
                     self.losses = tf.reduce_mean(l)
                     gd = opt.compute_gradients(self.losses)
                     self.train_op = opt.apply_gradients(gd)
                     probs = tf.nn.softmax(output)
-                    self.preds = tf.argmax(probs)
+                    self.preds = tf.argmax(probs, 1)
             else:
                 output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
                 if not self.is_test:
@@ -125,7 +125,7 @@ class Model():
                 sys.stdout.flush()
             
             if self.loss_function == "softmax":
-                preds += pred
+                preds += [int(x) for x in pred]
             else:
                 preds += [1 if x >= 0.5 else 0 for x in pred]
         

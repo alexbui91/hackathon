@@ -97,19 +97,21 @@ class SparkEngine():
             c_vals_ = np.zeros((m, c_dims))
         return c_vals_
 
-    def get_data_from_df(self, policies, claim, customer):
+    def get_data_from_df(self, policies, claim, customer, cancel_out=False):
         policy_vectors = []
         claim_vectors = []
         customer_vectors = []
         labels = []
         m, n = pr.max_claim, pr.max_customer
-        c_dims = pr.c_dims
-        cl_dims = pr.cl_dims
+        if not cancel_out:
+            c_dims = pr.c_dims
+            cl_dims = pr.cl_dims
+        else:
+            c_dims = pr.c_dims - 1
+            cl_dims = pr.cl_dims - 1
         policy_ids = []
         for p in policies:
             p_v = [float(x) for x in p["features"]]
-            print(len(p_v))
-            break
             p_id = int(p["policy_id"])
             if p_id in customer:
                 c_vals = customer[p_id]
@@ -135,7 +137,7 @@ class SparkEngine():
             c_dict[int(c["policy_id"])] = c["features"]
         return c_dict
 
-    def get_data(self, policy_one_hot=True):
+    def get_data(self, policy_one_hot=True, cancel_out=False):
         # engine do something
         p1 = "release/claim.csv"
         p2 = "release/customer.csv"
@@ -143,8 +145,12 @@ class SparkEngine():
         
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
                     .filter(col("policy_id").isNotNull()) \
-                    .na.fill(0.0, self.claim_cols[9:12])                   
-        claim_norm = self.normalize_vector(claim, self.claim_cols_norm)
+                    .na.fill(0.0, self.claim_cols[9:12])
+        if cancel_out:
+            clcols_norm = self.claim_cols_norm[1:]
+        else:
+            clcols_norm = self.claim_cols_norm
+        claim_norm = self.normalize_vector(claim, clcols_norm)
         claim_norm = self.onehot_encode(claim_norm, self.claim_cols_onehot)
         claim_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.claim_cols_onehot], outputCol="all_features")
         claim_norm = claim_assem.transform(claim_norm).select(col("policy_id"), col("z03"), col("all_features").alias("cl_features"))
@@ -172,8 +178,11 @@ class SparkEngine():
                     .withColumn("v15", self.udf_float(col("v15")).cast("double"))\
                     .withColumn("v16", self.udf_float(col("v16")).cast("double"))\
                     .na.fill(0, self.getIntegerType(self.customer_schema))
-
-        customer_norm = self.normalize_vector(customer, self.customer_cols_norm).select(col("policy_id"), col("z01"), col("features").alias("cus_features"))
+        if cancel_out:
+            ccols_norm = self.customer_cols_norm[1:]
+        else:
+            ccols_norm = self.customer_cols_norm
+        customer_norm = self.normalize_vector(customer, ccols_norm).select(col("policy_id"), col("z01"), col("features").alias("cus_features"))
         
         pint = self.getIntegerType(self.policy_schema)
         del pint[0]
@@ -205,22 +214,22 @@ class SparkEngine():
         customer_dict = self.switch_dict(customer_data)
         return policy_norm, claim_dict, customer_dict
 
-    def get_train_data(self, policy_one_hot=True):
+    def get_train_data(self, policy_one_hot=True, cancel_out=False):
         p4 = "release/renewal_train.csv"
         renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
-        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot)
+        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot, cancel_out)
         policy_df = policy_norm.join(renewal, [policy_norm.policy_id == renewal.policy_id])\
                     .select("renewal.*", policy_norm.features)
         policies = policy_df.collect()
-        policy_vectors, claim_vectors, customer_vectors, labels, _ = self.get_data_from_df(policies, claim_dict, customer_dict)
+        policy_vectors, claim_vectors, customer_vectors, labels, _ = self.get_data_from_df(policies, claim_dict, customer_dict, cancel_out)
     
         return policy_vectors, claim_vectors, customer_vectors, labels
     
-    def get_test_data(self, policy_one_hot=True):
+    def get_test_data(self, policy_one_hot=True, cancel_out=False):
         p5 = "release/result.csv"
         results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
-        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot)
+        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot, cancel_out)
         test_policy_df = policy_norm.join(results, [policy_norm.policy_id == results.policy_id])\
                         .select(results.policy_id, policy_norm.features)
         test_policies = test_policy_df.collect()
-        return self.get_data_from_df(test_policies, claim_dict, customer_dict)
+        return self.get_data_from_df(test_policies, claim_dict, customer_dict, cancel_out)

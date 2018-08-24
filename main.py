@@ -49,10 +49,10 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
     configs = tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)
     return configs
 
-def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1, loss_function="sigmoid"):
+def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1, cancel_out=0, loss_function="sigmoid", early_stopping="loss"):
     if not url_feature:
         engine = SparkEngine()
-        train_data = engine.get_train_data(policy_one_hot)
+        train_data = engine.get_train_data(policy_one_hot, cancel_out)
         utils.save_file("data/train_data_%s.bin" % prefix, train_data)
         train, valid = split_data(train_data, 0.8)
     else:
@@ -86,12 +86,19 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
             print('Training loss: {} | f1_score {}'.format(train_loss, f1_score))
             valid_loss, vf1_score, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
             print('Validation loss: {} | f1_score {}'.format(valid_loss, vf1_score))
-
-            if valid_loss < best_val_loss:
-                best_val_loss = valid_loss
-                best_val_epoch = i
-                print('Saving weights')
-                saver.save(session, 'weights/%s_%s.weights' % (prefix, net))
+            if early_stopping == "loss":
+                if valid_loss < best_val_loss:
+                    best_val_loss = valid_loss
+                    best_val_epoch = i
+                    print('Saving weights')
+                    saver.save(session, 'weights/%s_%s.weights' % (prefix, net))
+            else:
+                # using f1 to be the stopping point instead
+                if valid_loss < vf1_score:
+                    best_val_loss = vf1_score
+                    best_val_epoch = i
+                    print('Saving weights')
+                    saver.save(session, 'weights/%s_%s.weights' % (prefix, net))
 
             if (i - best_val_epoch) > p.early_stopping:
                 break
@@ -104,10 +111,10 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         # save_file("prediction.txt", tmp)
 
 
-def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1):
+def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1, cancel_out=0):
     if not url_feature:
         engine = SparkEngine()
-        test_data = engine.get_test_data(policy_one_hot)
+        test_data = engine.get_test_data(policy_one_hot, cancel_out)
         utils.save_file("data/test_data_%s.bin" % prefix, test_data)
     else:
         test_data = utils.load_file(url_feature)
@@ -148,7 +155,7 @@ def convert_prediction(pred_path):
             x_ = x.rstrip("\n")
             y_ = x.split(", ")
             pr_dict[int(y_[0])] = int(y_[1])
-    tmp = "policy_id,label"
+    tmp = "policy_id,label\n"
     for x in data:
         tmp += "%i, %i\n" % (x, pr_dict[x])
     name = pred_path.split(".txt")[0]
@@ -164,6 +171,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--one_hot_policy", type=int, default=1)
     parser.add_argument("-n", "--net", type=int, default=1)
     parser.add_argument("-l", "--loss_function", default="sigmoid")
+    parser.add_argument("-c", "--cancel_out", default=0, type=int)
+    parser.add_argument("-e", "--early_stopping", default="loss", help="loss|f1")
     """
     for training:
     python main.py -f data/train_data_None_net.bin -n 3 -p "complex_net_tanh" -o 0
@@ -172,8 +181,8 @@ if __name__ == "__main__":
     """
     args = parser.parse_args()
     if args.test == 1:
-        test(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
+        test(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net, args.cancel_out)
     elif args.test == 0:
-        main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net, args.loss_function)
+        main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net, args.cancel_out, args.loss_function, args.early_stopping)
     else:
         convert_prediction(args.data_path)

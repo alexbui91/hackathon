@@ -53,7 +53,7 @@ def main(prefix="zhongan", url_feature="", url_weight=""):
     if not url_feature:
         engine = SparkEngine()
         train_data = engine.get_train_data()
-        utils.save_file("data/train_data.bin", train_data)
+        utils.save_file("data/train_data_%s.bin" % prefix, train_data)
     else:
         train_data = utils.load_file(url_feature)
     train, valid = split_data(train_data, 0.8)
@@ -106,8 +106,8 @@ def main(prefix="zhongan", url_feature="", url_weight=""):
 def test(prefix="zhongan", url_feature="", url_weight=""):
     if not url_feature:
         engine = SparkEngine()
-        test_data = engine.get_train_data()
-        utils.save_file("data/test_data.bin", test_data)
+        test_data = engine.get_test_data()
+        utils.save_file("data/test_data_%s.bin" % prefix, test_data)
     else:
         test_data = utils.load_file(url_feature)
     

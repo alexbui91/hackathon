@@ -23,7 +23,7 @@ class SparkEngine():
         self.policy_schema = StructType(policy_col_t)
         self.policy_cols_norm = self.policy_cols[1:19] + ["v00","v01","v02","v03", "v04"]
         # "c12", "c13", "c14", "c15", "c16"
-        self.policy_cols_onehot = ["c12"]
+        self.policy_cols_onehot = ["c18", "c21", "c22", "c23", "c24", "c25", "z00"]
 
         self.result_schema = StructType([StructField("policy_id", IntegerType(), True)])
 
@@ -108,6 +108,8 @@ class SparkEngine():
         policy_ids = []
         for p in policies:
             p_v = [float(x) for x in p["features"]]
+            print(len(p_v))
+            break
             p_id = int(p["policy_id"])
             if p_id in customer:
                 c_vals = customer[p_id]
@@ -133,7 +135,7 @@ class SparkEngine():
             c_dict[int(c["policy_id"])] = c["features"]
         return c_dict
 
-    def get_data(self):
+    def get_data(self, policy_one_hot=False):
         # engine do something
         p1 = "release/claim.csv"
         p2 = "release/customer.csv"
@@ -185,10 +187,12 @@ class SparkEngine():
                     .na.fill(0, pint)\
                     .na.fill(0.0, self.getDoubleType(self.policy_schema))
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
-        #policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
         
-        # policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
-        # policy_norm = policy_assem.transform(policy_norm)
+        if policy_one_hot:
+            policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
+            
+            policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
+            policy_norm = policy_assem.transform(policy_norm).select(col("policy_id"), col("all_features").alias("features"))
 
         claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("features")).select("policy_id", "features")
         customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("features")).select("policy_id", "features")

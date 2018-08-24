@@ -107,7 +107,9 @@ def main(prefix="zhongan", url_feature="", url_weight=""):
 def test(prefix="zhongan", url_feature="", url_weight=""):
     data = utils.load_file(url_feature)
     _, test_data = data
-    model = Model(batch_size=1)
+    policies, claims, customers, labels = test_data
+    policies, claims, customers, labels = np.asarray(policies, dtype=np.float32), np.asarray(claims, dtype=np.float32), np.asarray(customers, dtype=np.float32), np.asarray(labels, dtype=np.int32)
+    model = Model(batch_size=1, is_test=True)
     with tf.device('/gpu:3'):
         model.init_ops()
         print('==> initializing variables')

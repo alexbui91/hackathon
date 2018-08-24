@@ -10,7 +10,7 @@ import properties as pr
 class Model():
 
 
-    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01):
+    def __init__(self, hidden_layer_size=128, batch_size=64, learning_rate=0.01, is_test=False):
         self.initializer = tf.contrib.layers.xavier_initializer()
         self.batch_size = batch_size
         self.hidden_layer_size = hidden_layer_size
@@ -20,6 +20,7 @@ class Model():
         self.customer_vs = pr.c_dims
         self.claim_length = pr.max_claim
         self.customer_length = pr.max_customer
+        self.is_test=is_test
 
     def init_ops(self):
         self.add_placeholders()
@@ -44,11 +45,12 @@ class Model():
             inputs = tf.concat([self.policy, cl_a, cus_a], axis=1)
             hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
             output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
-            l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
-            opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.losses = tf.reduce_mean(l)
-            gd = opt.compute_gradients(self.losses)
-            self.train_op = opt.apply_gradients(gd)
+            if not self.is_test:
+                l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
+                opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+                self.losses = tf.reduce_mean(l)
+                gd = opt.compute_gradients(self.losses)
+                self.train_op = opt.apply_gradients(gd)
             self.preds = tf.nn.sigmoid(output)
 
     def get_attention(self, inputs):
@@ -85,8 +87,10 @@ class Model():
                 self.customer: ct,
                 self.pred_labels: lt
             }
-
-            loss, pred, _= session.run([self.losses, self.preds, train_op], feed_dict=feed)
+            if self.is_test:
+                pred = session.run([self.preds], feed_dict=feed)
+            else:
+                loss, pred, _= session.run([self.losses, self.preds, train_op], feed_dict=feed)
 
             total_loss += loss
             if train:

@@ -49,7 +49,7 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
     configs = tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)
     return configs
 
-def main(prefix="", url_feature="", url_weight=""):
+def main(prefix="zhongan", url_feature="", url_weight=""):
     if not url_feature:
         engine = SparkEngine()
         train_data, test_data = engine.process_vectors()
@@ -104,7 +104,7 @@ def main(prefix="", url_feature="", url_weight=""):
         save_file("prediction.txt", tmp)
 
 
-def test(prefix="", url_feature="", url_weight=""):
+def test(prefix="zhongan", url_feature="", url_weight=""):
     data = utils.load_file(url_feature)
     _, test_data = data
     model = Model(batch_size=1)
@@ -136,6 +136,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.test:
-        test(args.prefix=, args.data_path, args.weight)
+        test(args.prefix, args.data_path, args.weight)
     else:
         main(args.prefix, args.data_path, args.weight)

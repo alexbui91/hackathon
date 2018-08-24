@@ -79,8 +79,6 @@ class Model():
             ct = customer[index]
             clt = claim[index]
             lt = labels[index]
-            print(np.shape(ct))
-            print(np.shape(clt))
             feed = {
                 self.policy: pt,
                 self.claim: clt,

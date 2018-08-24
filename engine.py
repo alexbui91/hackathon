@@ -108,13 +108,13 @@ class SparkEngine():
         for p in policies:
             p_v = [float(x) for x in p["features"]]
             p_id = int(p["policy_id"])
-            if p_id in claim:
-                c_vals = claim[p_id]
+            if p_id in customer:
+                c_vals = customer[p_id]
             else:
                 c_vals = []
             c_vals_ = self.pad_data(c_vals, c_dims, m)
-            if p_id in customer:
-                cl_vals = customer[p_id]
+            if p_id in claim:
+                cl_vals = claim[p_id]
             else:
                 cl_vals = []
             cl_vals_ = self.pad_data(cl_vals, cl_dims, n)

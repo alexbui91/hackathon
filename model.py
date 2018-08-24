@@ -48,10 +48,17 @@ class Model():
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.relu)
             elif self.net == 1:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.tanh)
-            else:
-                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden", activation=tf.nn.tanh)
-                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size/2, name="policy_hidden", activation=tf.nn.tanh)
-                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size/4, name="policy_hidden", activation=tf.nn.relu)
+            else self.net == 2:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_2", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.relu)
+            else self.net == 3:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
+            else self.net == 4:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_3", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
 
             output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
             if not self.is_test:

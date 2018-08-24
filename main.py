@@ -10,7 +10,7 @@ import time
 import argparse
 
 from model import Model
-from engine import SparkEngine
+# from engine import SparkEngine
 import utils
 import properties as p
 
@@ -57,7 +57,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         train, valid = split_data(train_data, 0.8)
     else:
         train_data = utils.load_file(url_feature)
-        train, valid = train_data
+        train, valid = split_data(train_data, 0.8)
     model = Model(net=net)
     with tf.device('/gpu:3'):
         model.init_ops()
@@ -135,6 +135,26 @@ def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         save_file("prediction_%s.txt" % prefix, tmp)
 
 
+def convert_prediction(pred_path):
+    path = "release/result.csv"    
+    with open(path) as f:
+        data = f.readlines()
+        data = [int(x.rstrip("\n")) for x in data[1:]]
+
+    pr_dict = dict()
+    with open(pred_path) as f:
+        preds = f.readlines()
+        for x in preds:
+            x_ = x.rstrip("\n")
+            y_ = x.split(", ")
+            pr_dict[int(y_[0])] = int(y_[1])
+    tmp = ""
+    for x in data:
+        tmp += "%i, %i\n" % (x, pr_dict[x])
+    name = pred_path.split(".txt")[0]
+    save_file("%s_converted.txt" % name, tmp)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--prefix", default="zhongan")
@@ -145,7 +165,9 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--net", type=int, default=1)
 
     args = parser.parse_args()
-    if args.test:
+    if args.test == 1:
         test(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
-    else:
+    elif args.test == 0:
         main(args.prefix, args.data_path, args.weight, args.one_hot_policy, args.net)
+    else:
+        convert_prediction(args.data_path)

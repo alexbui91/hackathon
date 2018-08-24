@@ -112,12 +112,12 @@ class SparkEngine():
                 c_vals = customer[p_id]
             else:
                 c_vals = []
-            c_vals_ = self.pad_data(c_vals, c_dims, m)
+            c_vals_ = self.pad_data(c_vals, c_dims, n)
             if p_id in claim:
                 cl_vals = claim[p_id]
             else:
                 cl_vals = []
-            cl_vals_ = self.pad_data(cl_vals, cl_dims, n)
+            cl_vals_ = self.pad_data(cl_vals, cl_dims, m)
             if "label" in p:
                 labels.append(int(p["label"]))
             customer_vectors.append(c_vals_)

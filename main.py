@@ -104,6 +104,28 @@ def main(prefix="", url_feature="", url_weight=""):
         save_file("prediction.txt", tmp)
 
 
+def test(prefix="", url_feature="", url_weight=""):
+    data = utils.load_file(url_feature)
+    _, test_data = data
+    model = Model(batch_size=1)
+    with tf.device('/gpu:3'):
+        model.init_ops()
+        print('==> initializing variables')
+        init = tf.global_variables_initializer()
+        saver = tf.train.Saver()
+    
+    tconfig = get_gpu_options("gpu", "3,4")
+ 
+    with tf.Session(config=tconfig) as session:
+        session.run(init)
+        if url_weight:
+            print('==> restoring weights')
+            saver.restore(session, '%s' % url_weight)
+        
+        _, _, preds = model.run_epochs(test_data, session, 0, None, train=False)
+        tmp = array_to_str(preds)
+        save_file("prediction_%s.txt" & prefix, tmp)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

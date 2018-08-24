@@ -109,7 +109,10 @@ class Model():
                 summary.value.add(tag=name, simple_value=(total_loss / total_steps))
                 train_writer.add_summary(summary, num_epoch)
         end = total_steps * self.batch_size
-        labels = labels[:end]
-        score = f1_score(labels, preds, average="binary")
+        if labels:
+            labels = labels[:end]
+            score = f1_score(labels, preds, average="binary")
+        else: 
+            score = 0
         return total_loss, score, preds
                 

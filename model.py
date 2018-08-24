@@ -60,11 +60,6 @@ class Model():
         cl_a = tf.reduce_sum(tf.transpose(cl_a, [1, 2, 0]), axis=1)
         return cl_a
 
-    def get_pred_rec(self, preds, labels):
-        p =  
-        r = 
-        return p, r
-
     def run_epochs(self, data, session, num_epoch=0, train_writer=None, train=True):
         if not train:
             train_op = tf.no_op()

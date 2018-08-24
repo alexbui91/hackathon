@@ -49,7 +49,7 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
     configs = tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)
     return configs
 
-def main(prefix="zhongan", url_feature="", url_weight=""):
+def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
     if not url_feature:
         engine = SparkEngine()
         train_data = engine.get_train_data()
@@ -103,7 +103,7 @@ def main(prefix="zhongan", url_feature="", url_weight=""):
         # save_file("prediction.txt", tmp)
 
 
-def test(prefix="zhongan", url_feature="", url_weight=""):
+def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
     if not url_feature:
         engine = SparkEngine()
         test_data = engine.get_test_data()
@@ -140,9 +140,10 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--data_path")
     parser.add_argument("-w", "--weight")
     parser.add_argument("-t", "--test", type=int, default=0)
+    parser.add_argument("-o", "--one_hot_policy", type=int, default=1)
 
     args = parser.parse_args()
     if args.test:
-        test(args.prefix, args.data_path, args.weight)
+        test(args.prefix, args.data_path, args.weight, args.one_hot_policy)
     else:
-        main(args.prefix, args.data_path, args.weight)
+        main(args.prefix, args.data_path, args.weight, args.one_hot_policy)

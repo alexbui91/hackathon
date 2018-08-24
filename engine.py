@@ -135,7 +135,7 @@ class SparkEngine():
             c_dict[int(c["policy_id"])] = c["features"]
         return c_dict
 
-    def get_data(self, policy_one_hot=False):
+    def get_data(self, policy_one_hot=True):
         # engine do something
         p1 = "release/claim.csv"
         p2 = "release/customer.csv"
@@ -204,10 +204,10 @@ class SparkEngine():
         customer_dict = self.switch_dict(customer_data)
         return policy_norm, claim_dict, customer_dict
 
-    def get_train_data(self):
+    def get_train_data(self, policy_one_hot=True):
         p4 = "release/renewal_train.csv"
         renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
-        policy_norm, claim_dict, customer_dict = self.get_data()
+        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot)
         policy_df = policy_norm.join(renewal, [policy_norm.policy_id == renewal.policy_id])\
                     .select("renewal.*", policy_norm.features)
         policies = policy_df.collect()
@@ -215,10 +215,10 @@ class SparkEngine():
     
         return policy_vectors, claim_vectors, customer_vectors, labels
     
-    def get_test_data(self):
+    def get_test_data(self, policy_one_hot=True):
         p5 = "release/result.csv"
         results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
-        policy_norm, claim_dict, customer_dict = self.get_data()
+        policy_norm, claim_dict, customer_dict = self.get_data(policy_one_hot)
         test_policy_df = policy_norm.join(results, [policy_norm.policy_id == results.policy_id])\
                         .select(results.policy_id, policy_norm.features)
         test_policies = test_policy_df.collect()

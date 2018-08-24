@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as numpy
 from sklearn.metrics import f1_score
 import sys
+import properties as pr
 
 class Model():
 
@@ -14,11 +15,11 @@ class Model():
         self.batch_size = batch_size
         self.hidden_layer_size = hidden_layer_size
         self.learning_rate = learning_rate
-        self.policy_vs = 53
-        self.claim_vs = 15
-        self.customer_vs = 22
-        self.claim_length = 5
-        self.customer_length = 5
+        self.policy_vs = pr.policy_dims
+        self.claim_vs = pr.cl_dims
+        self.customer_vs = pr.c_dims
+        self.claim_length = pr.max_claim
+        self.customer_length = pr.max_customer
 
     def init_ops(self):
         self.add_placeholders()

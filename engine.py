@@ -7,6 +7,7 @@ from pyspark.ml.feature import MinMaxScaler, VectorAssembler, OneHotEncoder, Str
 from datetime import timedelta
 import numpy as np
 import udf as udf_utils
+import properties as pr
 
 class SparkEngine():
 
@@ -101,11 +102,11 @@ class SparkEngine():
         claim_vectors = []
         customer_vectors = []
         labels = []
-        m, n = 5, 15
-        c_dims = 36
-        cl_dims = 22
+        m, n = pr.max_claim, pr.max_customer
+        c_dims = pr.c_dims
+        cl_dims = pr.cl_dims
         for p in policies:
-            p_v = [float(x) for x in p["all_features"]]
+            p_v = [float(x) for x in p["features"]]
             p_id = int(p["policy_id"])
             if p_id in claim:
                 c_vals = claim[p_id]
@@ -202,10 +203,10 @@ class SparkEngine():
         customer_dict = self.switch_dict(customer_data)
 
         policy_df = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
-                    .select("renewal.*", policy_norm.features, claim_.cl_features, customer_.cus_features)
+                    .select("renewal.*", policy_norm.features)
 
         test_policy_df = policy_norm.join(results, [policy.policy_id == results.policy_id])\
-                    .select(results.policy_id, policy_norm.features, claim_.cl_features, customer_.cus_features)
+                    .select(results.policy_id, policy_norm.features)
 
         policies = policy_df.collect()
         test_policies = test_policy_df.collect()

@@ -91,7 +91,6 @@ class Model():
                 feed[self.pred_labels] = labels[index]
                 loss, pred, _= session.run([self.losses, self.preds, train_op], feed_dict=feed)
 
-            if train:
                 total_loss += loss
                 sys.stdout.write('\r{} / {} loss = {}'.format(
                     step, total_steps, total_loss / (step + 1)))
@@ -99,8 +98,15 @@ class Model():
 
             preds += [1 if x >= 0.5 else 0 for x in pred]
         
-        if train:
+        if not self.is_test:
             sys.stdout.write("\r")
+            end = total_steps * self.batch_size
+            if not self.is_test:
+                labels = labels[:end]
+                score = f1_score(labels, preds, average="binary")
+            else: 
+                score = 0
+        
         if train_writer:
             if total_steps:
                 summary = tf.Summary()
@@ -111,11 +117,6 @@ class Model():
                 total_loss = total_loss / total_steps
                 summary.value.add(tag=name, simple_value=(total_loss / total_steps))
                 train_writer.add_summary(summary, num_epoch)
-        end = total_steps * self.batch_size
-        if labels:
-            labels = labels[:end]
-            score = f1_score(labels, preds, average="binary")
-        else: 
-            score = 0
+        
         return total_loss, score, preds
                 

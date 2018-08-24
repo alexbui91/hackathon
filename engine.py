@@ -102,7 +102,7 @@ class SparkEngine():
         customer_vectors = []
         labels = []
         m, n = 5, 15
-        c_dims = 22
+        c_dims = 36
         cl_dims = 15
         for p in policies:
             p_v = [float(x) for x in p["all_features"]]
@@ -140,6 +140,7 @@ class SparkEngine():
         
         results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
+                    .filter(col("policy_id").isNotNull()) \
                     .na.fill(0.0, self.claim_cols[9:12])                   
         claim_norm = self.normalize_vector(claim, self.claim_cols_norm)
         claim_norm = self.onehot_encode(claim_norm, self.claim_cols_onehot)
@@ -147,6 +148,7 @@ class SparkEngine():
         claim_norm = claim_assem.transform(claim_norm).select(col("policy_id"), col("z03"), col("all_features").alias("cl_features"))
         
         customer = self.spark.read.format("csv").option("header", "true").schema(self.customer_schema).load(p2)\
+                    .filter(col("policy_id").isNotNull()) \
                     .withColumn("c07", self.udf_float(col("c07")).cast("double"))\
                     .withColumn("c08", self.udf_float(col("c08")).cast("double"))\
                     .withColumn("c09", self.udf_float(col("c09")).cast("double"))\
@@ -168,6 +170,7 @@ class SparkEngine():
                     .withColumn("v15", self.udf_float(col("v15")).cast("double"))\
                     .withColumn("v16", self.udf_float(col("v16")).cast("double"))\
                     .na.fill(0, self.getIntegerType(self.customer_schema))
+
         customer_norm = self.normalize_vector(customer, self.customer_cols_norm).select(col("policy_id"), col("z01"), col("features").alias("cus_features"))
         
         pint = self.getIntegerType(self.policy_schema)
@@ -194,7 +197,7 @@ class SparkEngine():
 
         claim_data = claim_.collect()
         customer_data = customer_.collect()
-        
+        print(len(customer_data[0]["features"]))
         claim_dict = self.switch_dict(claim_data)
         customer_dict = self.switch_dict(customer_data)
 

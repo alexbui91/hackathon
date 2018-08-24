@@ -91,8 +91,8 @@ class Model():
                 feed[self.pred_labels] = labels[index]
                 loss, pred, _= session.run([self.losses, self.preds, train_op], feed_dict=feed)
 
-            total_loss += loss
             if train:
+                total_loss += loss
                 sys.stdout.write('\r{} / {} loss = {}'.format(
                     step, total_steps, total_loss / (step + 1)))
                 sys.stdout.flush()

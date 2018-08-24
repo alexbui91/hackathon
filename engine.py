@@ -105,6 +105,7 @@ class SparkEngine():
         m, n = pr.max_claim, pr.max_customer
         c_dims = pr.c_dims
         cl_dims = pr.cl_dims
+        policy_ids = []
         for p in policies:
             p_v = [float(x) for x in p["features"]]
             p_id = int(p["policy_id"])
@@ -123,7 +124,8 @@ class SparkEngine():
             customer_vectors.append(c_vals_)
             claim_vectors.append(cl_vals_)
             policy_vectors.append(p_v)
-        return policy_vectors, claim_vectors, customer_vectors, labels
+            policy_ids.append(p_id)
+        return policy_vectors, claim_vectors, customer_vectors, labels, policy_ids
 
     def switch_dict(self, data):
         c_dict = {}
@@ -131,15 +133,12 @@ class SparkEngine():
             c_dict[int(c["policy_id"])] = c["features"]
         return c_dict
 
-    def process_vectors(self):
+    def get_data(self):
         # engine do something
         p1 = "release/claim.csv"
         p2 = "release/customer.csv"
         p3 = "release/policy.csv"
-        p4 = "release/renewal_train.csv"
-        p5 = "release/result.csv"
         
-        results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
                     .filter(col("policy_id").isNotNull()) \
                     .na.fill(0.0, self.claim_cols[9:12])                   
@@ -191,8 +190,6 @@ class SparkEngine():
         # policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
         # policy_norm = policy_assem.transform(policy_norm)
 
-        renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
-
         claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("features")).select("policy_id", "features")
         customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("features")).select("policy_id", "features")
 
@@ -201,17 +198,24 @@ class SparkEngine():
 
         claim_dict = self.switch_dict(claim_data)
         customer_dict = self.switch_dict(customer_data)
+        return policy_norm, claim_dict, customer_dict
 
-        policy_df = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
+    def get_train_data(self):
+        p4 = "release/renewal_train.csv"
+        renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
+        policy_norm, claim_dict, customer_dict = self.get_data()
+        policy_df = policy_norm.join(renewal, [policy_norm.policy_id == renewal.policy_id])\
                     .select("renewal.*", policy_norm.features)
-
-        test_policy_df = policy_norm.join(results, [policy.policy_id == results.policy_id])\
-                    .select(results.policy_id, policy_norm.features)
-
         policies = policy_df.collect()
-        test_policies = test_policy_df.collect()
-
-        train_data = self.get_data_from_df(policies, claim_dict, customer_dict)
-        test_data = self.get_data_from_df(test_policies, claim_dict, customer_dict)
+        policy_vectors, claim_vectors, customer_vectors, labels, _ = self.get_data_from_df(policies, claim_dict, customer_dict)
     
-        return train_data, test_data
+        return policy_vectors, claim_vectors, customer_vectors, labels
+    
+    def get_test_data(self):
+        p5 = "release/result.csv"
+        results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
+        policy_norm, claim_dict, customer_dict = self.get_data()
+        test_policy_df = policy_norm.join(results, [policy_norm.policy_id == results.policy_id])\
+                        .select(results.policy_id, policy_norm.features)
+        test_policies = test_policy_df.collect()
+        return self.get_data_from_df(test_policies, claim_dict, customer_dict)

@@ -2,7 +2,6 @@
 index of N/A in one_hot feature 0,41,73,112,129,146
 39 in case of only seoul & not integrate china
 """
-
 import tensorflow as tf
 import numpy as np
 import os
@@ -16,12 +15,13 @@ import utils
 import properties as p
 
 
-def array_to_str(obj, delimiter="\n"):
+def array_to_str(policies, preds, delimiter="\n"):
     tmp = ""
-    l = len(obj) - 1
-    for i, x in enumerate(obj):
-        tmp += str(x)
-        if i < l:
+    l = len(preds)
+    e = l - 1
+    for i in xrange(l):
+        tmp += "%i, %i" % (policies[i], preds[i])
+        if i < e:
             tmp += delimiter
     return tmp
 
@@ -52,11 +52,10 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
 def main(prefix="zhongan", url_feature="", url_weight=""):
     if not url_feature:
         engine = SparkEngine()
-        train_data, test_data = engine.process_vectors()
-        utils.save_file("data/data.bin", (train_data, test_data))
+        train_data = engine.get_train_data()
+        utils.save_file("data/train_data.bin", train_data)
     else:
-        data = utils.load_file(url_feature)
-        train_data, test_data = data
+        train_data = utils.load_file(url_feature)
     train, valid = split_data(train_data, 0.8)
     model = Model()
     with tf.device('/gpu:3'):
@@ -97,19 +96,24 @@ def main(prefix="zhongan", url_feature="", url_weight=""):
                 break
             print('Total time: {}'.format(time.time() - start))
         
-        model.batch_size = 1
-        _, tf1_score, preds = model.run_epochs(test_data, session,  i * p.total_iteration, train_writer, train=False)
-        print('f1_score: {}'.format(tf1_score))
-        tmp = array_to_str(preds)
-        save_file("prediction.txt", tmp)
+        # model.batch_size = 1
+        # _, tf1_score, preds = model.run_epochs(test_data, session,  i * p.total_iteration, train_writer, train=False)
+        # print('f1_score: {}'.format(tf1_score))
+        # tmp = array_to_str(preds)
+        # save_file("prediction.txt", tmp)
 
 
 def test(prefix="zhongan", url_feature="", url_weight=""):
-    data = utils.load_file(url_feature)
-    _, test_data = data
-    policies, claims, customers, labels = test_data
-    policies, claims, customers, labels = np.asarray(policies, dtype=np.float32), np.asarray(claims, dtype=np.float32), np.asarray(customers, dtype=np.float32), np.asarray(labels, dtype=np.int32)
-    test_data = (policies, claims, customers, labels)
+    if not url_feature:
+        engine = SparkEngine()
+        test_data = engine.get_train_data()
+        utils.save_file("data/test_data.bin", test_data)
+    else:
+        test_data = utils.load_file(url_feature)
+    
+    policies, claims, customers, _, policy_ids = test_data
+    policies, claims, customers, policy_ids = np.asarray(policies, dtype=np.float32), np.asarray(claims, dtype=np.float32), np.asarray(customers, dtype=np.float32), np.asarray(policy_ids, dtype=np.int32)
+    test_data = (policies, claims, customers, [])
     model = Model(batch_size=1, is_test=True)
     with tf.device('/gpu:3'):
         model.init_ops()
@@ -126,13 +130,13 @@ def test(prefix="zhongan", url_feature="", url_weight=""):
             saver.restore(session, '%s' % url_weight)
         
         _, _, preds = model.run_epochs(test_data, session, 0, None, train=False)
-        tmp = array_to_str(preds)
-        save_file("prediction_%s.txt" & prefix, tmp)
+        tmp = array_to_str(policy_ids, preds)
+        save_file("prediction_%s.txt" % prefix, tmp)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--prefix")
+    parser.add_argument("-p", "--prefix", default="zhongan")
     parser.add_argument("-f", "--data_path")
     parser.add_argument("-w", "--weight")
     parser.add_argument("-t", "--test", type=int, default=0)

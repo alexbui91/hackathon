@@ -43,7 +43,7 @@ class SparkEngine():
                     +  [StructField(x, DoubleType(), True) for x in self.claim_cols[9:12]] \
                     +  [StructField(x, StringType(), True) for x in self.claim_cols[12:]]
         self.claim_schema = StructType(claim_cols_t)
-        self.renewal_schema = StructType([StructField("label", IntegerType(), True), StructField("policy_id", IntegerType(), True)])
+        self.renewal_schema = StructType([StructField("policy_id", IntegerType(), True), StructField("label", IntegerType(), True)])
         self.udf_get_limit = udf(udf_utils.get_limit)
         self.udf_float = udf(udf_utils.fix_float)
 

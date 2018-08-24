@@ -18,11 +18,11 @@ class SparkEngine():
                     "z05","z06","z07","z08","z09"]
         policy_col_t = [StructField(x, IntegerType(), True) for x in self.policy_cols[:19]]  \
                     +  [StructField(x, StringType(), True) for x in self.policy_cols[19:27]] \
-                    +  [StructField(x, DoubleType(), True) for x in self.policy_cols[27:32]] \
-                    +  [StructField(x, StringType(), True) for x in self.policy_cols[32:]]
+                    +  [StructField(x, DoubleType(), True) for x in self.policy_cols[27:33]] \
+                    +  [StructField(x, StringType(), True) for x in self.policy_cols[33:]]
 
         self.policy_schema = StructType(policy_col_t)
-        self.policy_cols_norm = self.policy_cols[1:18] + ["v00","v01","v02","v03"]
+        self.policy_cols_norm = self.policy_cols[1:19] + ["v00","v01","v02","v03"]
         # "c12", "c13", "c14", "c15", "c16"
         self.policy_cols_onehot = ["c12"]
 

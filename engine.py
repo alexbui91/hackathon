@@ -29,7 +29,7 @@ class SparkEngine():
         self.policy_cols_norm = self.policy_cols[1:13] + self.policy_cols[14:18] + ["v00","v01","v02","v03"]
         # "c12", "c13", "c14", "c15", "c16"
         self.policy_cols_onehot = ["c12"]
-        self.customer_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","v00","v01","v02","v03","v04","v05","v06",
+        self.customer_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","v00","v01","v02","v03","v04","v05","v06",\
                         "v07","v08","v09","v10","v11","v12","v13","v14","v15","v16","z00","z01","z02","z03"]
 
         customer_cols_t = [StructField(x, IntegerType(), True) for x in self.customer_cols[0:8]] \
@@ -37,13 +37,13 @@ class SparkEngine():
         self.customer_schema = StructType(customer_cols_t)
         self.customer_cols_norm = ["c00","c01","c02","c03","c04","c05","c06", "c07","c08","c09", "v01", "v02", "v03","v04","v05","v06", "v07","v08","v09", "v10", "v12", "v14"]
 
-        self.claim_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","c10","v00","v01","v02","z00","z01","z02","z03"]
-        self.claim_cols_norm = ["c00","c01","c02","c03","c04","c05","c06"]
-        self.claim_cols_onehot = ["c07", "c10"]
+        self.claim_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","v00","v01","v02","z00","z01","z02","z03","z04","z05","z06"]
+        self.claim_cols_norm = ["c00","c01","c03","c04","c05","c06", "v00", "v01", "v02"]
+        self.claim_cols_onehot = ["z04"]
         claim_cols_t = [StructField(x, IntegerType(), True) for x in self.claim_cols[0:8]]  \
-                    +  [StructField(x, StringType(), True) for x in self.claim_cols[8:12]] \
-                    +  [StructField(x, DoubleType(), True) for x in self.claim_cols[12:15]] \
-                    +  [StructField(x, StringType(), True) for x in self.claim_cols[15:]]
+                    +  [StructField(x, StringType(), True)] \
+                    +  [StructField(x, DoubleType(), True) for x in self.claim_cols[9:12]] \
+                    +  [StructField(x, StringType(), True) for x in self.claim_cols[12:]]
         self.claim_schema = StructType(claim_cols_t)
         self.renewal_schema = StructType([StructField("label", IntegerType(), True), StructField("policy_id", IntegerType(), True)])
         self.udf_get_limit = udf(udf_utils.get_limit)
@@ -100,10 +100,10 @@ class SparkEngine():
 
     def process_vectors(self):
         # engine do something
-        p1 = "data/claim_sample.csv"
-        p2 = "data/customer_sample.csv"
-        p3 = "data/policy_sample.csv"
-        p4 = "data/renewal_sample.csv"
+        p1 = "release/claim_sample.csv"
+        p2 = "release/customer_sample.csv"
+        p3 = "release/policy_sample.csv"
+        p4 = "release/renewal_sample.csv"
         
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
                     .na.fill(0.0, self.claim_cols[12:15])                   

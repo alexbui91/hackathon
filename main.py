@@ -131,7 +131,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--prefix")
     parser.add_argument("-f", "--data_path")
+    parser.add_argument("-w", "--weight")
+    parser.add_argument("-t", "--test", type=int, default=0)
 
     args = parser.parse_args()
-
-    main(args.prefix, args.data_path)
+    if args.test:
+        test(args.prefix=, args.data_path, args.weight)
+    else:
+        main(args.prefix, args.data_path, args.weight)

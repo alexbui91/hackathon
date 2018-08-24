@@ -16,6 +16,21 @@ import utils
 import properties as p
 
 
+def array_to_str(obj, delimiter="\n"):
+    tmp = ""
+    l = len(obj) - 1
+    for i, x in enumerate(obj):
+        tmp += str(x)
+        if i < l:
+            tmp += delimiter
+    return tmp
+
+
+def save_file(name, obj):
+    with open(name, 'wb') as f:
+        f.write(obj)
+
+
 def split_data(data, per):
     policies, claims, customers, labels = data
     lt = len(policies)
@@ -73,10 +88,10 @@ def main(prefix="", url_feature="", url_weight=""):
         for i in xrange(p.total_iteration):
             print('Epoch {}'.format(i))
             start = time.time()
-            train_loss, _ = model.run_epochs(train, session, i * p.total_iteration, train_writer)
-            print('Training loss: {}'.format(train_loss))
-            valid_loss, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
-            print('Validation loss: {}'.format(valid_loss))
+            train_loss, f1_score, _ = model.run_epochs(train, session, i * p.total_iteration, train_writer)
+            print('Training loss: {} | f1_score {}'.format(train_loss, f1_score))
+            valid_loss, vf1_score, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
+            print('Validation loss: {} | f1_score {}'.format(valid_loss, vf1_score))
 
             if valid_loss < best_val_loss:
                 best_val_loss = valid_loss
@@ -89,8 +104,11 @@ def main(prefix="", url_feature="", url_weight=""):
             print('Total time: {}'.format(time.time() - start))
         
         model.batch_size = 1
-        test_loss, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
-        print('Validation loss: {}'.format(valid_loss))
+        _, tf1_score, preds = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
+        print('f1_score: {}'.format(tf1_score))
+        tmp = array_to_str(preds)
+        save_file("prediction.txt", tmp)
+
 
 
 if __name__ == "__main__":

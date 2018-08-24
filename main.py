@@ -52,11 +52,12 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
 def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, net=1):
     if not url_feature:
         engine = SparkEngine()
-        train_data = engine.get_train_data()
+        train_data = engine.get_train_data(policy_one_hot)
         utils.save_file("data/train_data_%s.bin" % prefix, train_data)
+        train, valid = split_data(train_data, 0.8)
     else:
         train_data = utils.load_file(url_feature)
-    train, valid = split_data(train_data, 0.8)
+        train, valid = train_data
     model = Model(net=net)
     with tf.device('/gpu:3'):
         model.init_ops()

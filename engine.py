@@ -26,9 +26,9 @@ class SparkEngine():
                     +  [StructField(x, StringType(), True) for x in self.policy_cols[33:]]
 
         self.policy_schema = StructType(policy_col_t)
-        self.policy_cols_norm = self.policy_cols[1:13] + self.policy_cols[14:19] + ["v00","v01","v02","v03"]
+        self.policy_cols_norm = self.policy_cols[1:13] + self.policy_cols[14:18] + ["v00","v01","v02","v03"]
         # "c12", "c13", "c14", "c15", "c16"
-        self.policy_cols_onehot = ["c12","c19"]
+        self.policy_cols_onehot = ["c12"]
         self.customer_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","v00","v01","v02","v03","v04","v05","v06",
                         "v07","v08","v09","v10","v11","v12","v13","v14","v15","v16","z00","z01","z02","z03"]
 

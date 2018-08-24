@@ -48,10 +48,11 @@ class SparkEngine():
 
     def init_spark(self):
         conf = (SparkConf().setAppName("prediction_airpollution"))
-        conf.set("spark.driver.memory", "2g")
-        conf.set("spark.executor.memory", "1g")
+        conf.set("spark.driver.memory", "64g")
+        conf.set("spark.executor.memory", "32g")
         conf.set("spark.ui.port", "31040")
         conf.set("spark.sql.shuffle.partitions", "200")
+        conf.set("spark.debug.maxToStringFields", "100")
         spark = SparkSession.builder.config(conf=conf).getOrCreate()
         return spark
 

@@ -80,16 +80,15 @@ class Model():
             pt = policy[index]
             ct = customer[index]
             clt = claim[index]
-            lt = labels[index]
             feed = {
                 self.policy: pt,
                 self.claim: clt,
                 self.customer: ct,
-                self.pred_labels: lt
             }
             if self.is_test:
                 pred = session.run([self.preds], feed_dict=feed)
             else:
+                feed[self.pred_labels] = labels[index]
                 loss, pred, _= session.run([self.losses, self.preds, train_op], feed_dict=feed)
 
             total_loss += loss

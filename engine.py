@@ -96,26 +96,39 @@ class SparkEngine():
             c_vals_ = np.zeros((m, c_dims))
         return c_vals_
 
-    def get_data_from_df(self, policies):
+    def get_data_from_df(self, policies, claim, customer):
         policy_vectors = []
         claim_vectors = []
         customer_vectors = []
         labels = []
-        m = 5
+        m, n = 5, 15
         c_dims = 22
         cl_dims = 15
         for p in policies:
             p_v = [float(x) for x in p["all_features"]]
-            c_vals = p["cus_features"]
+            p_id = int(p["policy_id"])
+            if p_id in claim:
+                c_vals = claim[p_id]
+            else:
+                c_vals = []
             c_vals_ = self.pad_data(c_vals, c_dims, m)
-            cl_vals = p["cl_features"]
-            cl_vals_ = self.pad_data(cl_vals, cl_dims, m)
+            if p_id in customer:
+                cl_vals = customer[p_id]
+            else:
+                cl_vals = []
+            cl_vals_ = self.pad_data(cl_vals, cl_dims, n)
             if "label" in p:
                 labels.append(int(p["label"]))
             customer_vectors.append(c_vals_)
             claim_vectors.append(cl_vals_)
             policy_vectors.append(p_v)
         return policy_vectors, claim_vectors, customer_vectors, labels
+
+    def switch_dict(self, data):
+        c_dict = {}
+        for c in data:
+            c_dict[int("policy_id")] = c["cus_features"]
+        return c_dict
 
     def process_vectors(self):
         # engine do something
@@ -176,23 +189,25 @@ class SparkEngine():
 
         renewal = self.spark.read.format("csv").option("header", "true").schema(self.renewal_schema).load(p4).alias("renewal")
 
-        claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("cl_features")).select("policy_id", "cl_features")
-        customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("cus_features")).select("policy_id", "cus_features")
+        claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("features")).select("policy_id", "features")
+        customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("features")).select("policy_id", "features")
+
+        claim_data = claim_.collect()
+        customer_data = customer_.collect()
         
+        claim_dict = self.switch_dict(claim_data)
+        customer_dict = self.switch_dict(customer_data)
+
         policy_df = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
-                    .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
-                    .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
                     .select("renewal.*", policy_norm.features, claim_.cl_features, customer_.cus_features)
 
         test_policy_df = policy_norm.join(results, [policy.policy_id == results.policy_id])\
-                    .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
-                    .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
                     .select(results.policy_id, policy_norm.features, claim_.cl_features, customer_.cus_features)
 
         policies = policy_df.collect()
         test_policies = test_policy_df.collect()
 
-        train_data = self.get_data_from_df(policies)
-        test_data = self.get_data_from_df(test_policies)
+        train_data = self.get_data_from_df(policies, claim_dict, customer_dict)
+        test_data = self.get_data_from_df(test_policies, claim_dict, customer_dict)
     
         return train_data, test_data

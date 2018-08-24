@@ -121,7 +121,7 @@ class SparkEngine():
         p1 = "release/claim.csv"
         p2 = "release/customer.csv"
         p3 = "release/policy.csv"
-        p4 = "release/renewal_sample.csv"
+        p4 = "release/renewal_train.csv"
         p5 = "release/result.csv"
         
         results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)

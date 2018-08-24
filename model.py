@@ -49,7 +49,9 @@ class Model():
             self.losses = tf.reduce_mean(l)
             gd = opt.compute_gradients(self.losses)
             self.train_op = opt.apply_gradients(gd)
-            self.preds = tf.argmax(tf.nn.softmax(output), 1)
+            print(output.get_shape())
+            probs = tf.nn.sigmoid(output)
+            self.preds = tf.argmax(probs, 1)
 
     def get_attention(self, inputs):
         # batch_size x length x 128

@@ -26,7 +26,7 @@ class SparkEngine():
                     +  [StructField(x, StringType(), True) for x in self.policy_cols[33:]]
 
         self.policy_schema = StructType(policy_col_t)
-        self.policy_cols_norm = self.policy_cols[1:13] + self.policy_cols[14:18] + ["v00","v01","v02","v03"]
+        self.policy_cols_norm = self.policy_cols[1:18] + ["v00","v01","v02","v03"]
         # "c12", "c13", "c14", "c15", "c16"
         self.policy_cols_onehot = ["c12"]
 
@@ -38,7 +38,7 @@ class SparkEngine():
         customer_cols_t = [StructField(x, IntegerType(), True) for x in self.customer_cols[0:8]] \
                         + [StructField(x, StringType(), True) for x in self.customer_cols[8:]]
         self.customer_schema = StructType(customer_cols_t)
-        self.customer_cols_norm = ["c00","c01","c02","c03","c04","c05","c06", "c07","c08","c09", "v01", "v02", "v03","v04","v05","v06", "v07","v08","v09", "v10", "v12", "v14"]
+        self.customer_cols_norm = ["c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","v01", "v02", "v03","v04","v05","v06","v07","v08","v09", "v10", "v12", "v14"]
 
         self.claim_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","v00","v01","v02","z00","z01","z02","z03","z04","z05","z06"]
         self.claim_cols_norm = ["c00","c01","c03","c04","c05","c06", "v00", "v01", "v02"]
@@ -132,7 +132,7 @@ class SparkEngine():
         
         results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
-                    .na.fill(0.0, self.claim_cols[12:15])                   
+                    .na.fill(0.0, self.claim_cols[9:12])                   
         claim_norm = self.normalize_vector(claim, self.claim_cols_norm)
         claim_norm = self.onehot_encode(claim_norm, self.claim_cols_onehot)
         claim_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.claim_cols_onehot], outputCol="all_features")
@@ -170,7 +170,7 @@ class SparkEngine():
                     .na.fill(0.0, self.getDoubleType(self.policy_schema))
 
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
-        policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
+        #policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
         
         policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
         policy_norm = policy_assem.transform(policy_norm)

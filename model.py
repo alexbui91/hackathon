@@ -49,9 +49,7 @@ class Model():
             self.losses = tf.reduce_mean(l)
             gd = opt.compute_gradients(self.losses)
             self.train_op = opt.apply_gradients(gd)
-            print(output.get_shape())
-            probs = tf.nn.sigmoid(output)
-            self.preds = tf.argmax(probs, 1)
+            self.preds = tf.nn.sigmoid(output)
 
     def get_attention(self, inputs):
         # batch_size x length x 128
@@ -96,7 +94,7 @@ class Model():
                     step, total_steps, total_loss / (step + 1)))
                 sys.stdout.flush()
 
-            preds += pred.tolist()
+            preds += [1 if x >= 0.5 else 0 for x in pred]
         
         if train:
             sys.stdout.write("\r")

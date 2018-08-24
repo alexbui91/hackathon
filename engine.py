@@ -13,9 +13,9 @@ class SparkEngine():
     def __init__(self):
         self.spark = self.init_spark()
         # init udf function
-        self.policy_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","c10","c11","c12","c13","c14","c15","c16", \
-                    "c17","c18","c19","c20","c21","c22","c23","c24","c25","c26","c27","v00","v01","v02","v03","z00","z01","z02","z03","z04", \
-                    "z05","z06","z07","z08","z09"]
+        self.policy_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","c10","c11","c12","c13","c14","c15","c16",\
+                        "c17","c18","c19","c20","c21","c22","c23","c24","c25","v00","v01","v02","v03","v04","z00","z01","z02","z03","z04","z05",\
+                        "z06","z07","z08","z09","z10"]
         policy_col_t = [StructField(x, IntegerType(), True) for x in self.policy_cols[:19]]  \
                     +  [StructField(x, StringType(), True) for x in self.policy_cols[19:]]
 

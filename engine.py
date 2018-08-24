@@ -168,7 +168,7 @@ class SparkEngine():
                     .filter(col("policy_id").isNotNull()) \
                     .na.fill(0, pint)\
                     .na.fill(0.0, self.getDoubleType(self.policy_schema))
-
+        
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
         #policy_norm = self.onehot_encode(policy_norm, self.policy_cols_onehot)
         

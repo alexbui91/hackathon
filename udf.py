@@ -10,6 +10,6 @@ def fix_float(x):
     try:
         if x and x != "\N" and x != "":
             res = float(x)
-    except Exception as e:
-        print(x)
+    except:
+        res = 0.0
     return res

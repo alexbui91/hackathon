@@ -73,6 +73,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         session.run(init)
         best_val_epoch = 0
         best_val_loss = float('inf')
+        best_score = 0.0
 
         if url_weight:
             print('==> restoring weights')
@@ -93,9 +94,11 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
                     print('Saving weights')
                     saver.save(session, 'weights/%s_%s.weights' % (prefix, net))
             else:
+                print("using f1")
                 # using f1 to be the stopping point instead
-                if valid_loss < vf1_score:
-                    best_val_loss = vf1_score
+                if vf1_score > best_score or valid_loss < best_val_loss:
+                    best_score = vf1_score
+                    best_val_loss = valid_loss
                     best_val_epoch = i
                     print('Saving weights')
                     saver.save(session, 'weights/%s_%s.weights' % (prefix, net))

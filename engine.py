@@ -29,6 +29,9 @@ class SparkEngine():
         self.policy_cols_norm = self.policy_cols[1:13] + self.policy_cols[14:18] + ["v00","v01","v02","v03"]
         # "c12", "c13", "c14", "c15", "c16"
         self.policy_cols_onehot = ["c12"]
+
+        self.result_schema = StructType([StructField("policy_id", IntegerType(), True)])
+
         self.customer_cols = ["policy_id","c00","c01","c02","c03","c04","c05","c06","c07","c08","c09","v00","v01","v02","v03","v04","v05","v06",\
                         "v07","v08","v09","v10","v11","v12","v13","v14","v15","v16","z00","z01","z02","z03"]
 
@@ -41,7 +44,7 @@ class SparkEngine():
         self.claim_cols_norm = ["c00","c01","c03","c04","c05","c06", "v00", "v01", "v02"]
         self.claim_cols_onehot = ["z04"]
         claim_cols_t = [StructField(x, IntegerType(), True) for x in self.claim_cols[0:8]]  \
-                    +  [StructField(x, StringType(), True)] \
+                    +  [StructField("c07", StringType(), True)] \
                     +  [StructField(x, DoubleType(), True) for x in self.claim_cols[9:12]] \
                     +  [StructField(x, StringType(), True) for x in self.claim_cols[12:]]
         self.claim_schema = StructType(claim_cols_t)
@@ -98,13 +101,36 @@ class SparkEngine():
             c_vals_ = np.zeros((m, c_dims))
         return c_vals_
 
+    def get_data_from_df(self, policies):
+        policy_vectors = []
+        claim_vectors = []
+        customer_vectors = []
+        labels = []
+        m = 5
+        c_dims = 22
+        cl_dims = 15
+        for p in policies:
+            p_v = [float(x) for x in p["all_features"]]
+            c_vals = p["cus_features"]
+            c_vals_ = self.pad_data(c_vals, c_dims, m)
+            cl_vals = p["cl_features"]
+            cl_vals_ = self.pad_data(cl_vals, cl_dims, m)
+            if "label" in p:
+                labels.append(int(p["label"]))
+            customer_vectors.append(c_vals_)
+            claim_vectors.append(cl_vals_)
+            policy_vectors.append(p_v)
+        return policy_vectors, claim_vectors, customer_vectors, labels
+
     def process_vectors(self):
         # engine do something
-        p1 = "release/claim_sample.csv"
-        p2 = "release/customer_sample.csv"
-        p3 = "release/policy_sample.csv"
+        p1 = "release/claim.csv"
+        p2 = "release/customer.csv"
+        p3 = "release/policy.csv"
         p4 = "release/renewal_sample.csv"
+        p5 = "release/result.csv"
         
+        results = self.spark.read.format("csv").option("header", "true").schema(self.result_schema).load(p5)
         claim = self.spark.read.format("csv").option("header", "true").schema(self.claim_schema).load(p1)\
                     .na.fill(0.0, self.claim_cols[12:15])                   
         claim_norm = self.normalize_vector(claim, self.claim_cols_norm)
@@ -154,29 +180,20 @@ class SparkEngine():
         claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("cl_features")).select("policy_id", "cl_features")
         customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("cus_features")).select("policy_id", "cus_features")
         
-        policy_ = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
+        policy_df = policy_norm.join(renewal, [policy.policy_id == renewal.policy_id])\
                     .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
                     .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
-                    .select("renewal.*", policy_norm.all_features, claim_.cl_features, customer_.cus_features)\
-                    .orderBy(renewal.policy_id)
+                    .select("renewal.*", policy_norm.all_features, claim_.cl_features, customer_.cus_features)
 
-        policies = policy_.collect()
-        policy_vectors = []
-        claim_vectors = []
-        customer_vectors = []
-        labels = []
-        m = 5
-        c_dims = 22
-        cl_dims = 15
-        for p in policies:
-            p_v = [float(x) for x in p["all_features"]]
-            c_vals = p["cus_features"]
-            c_vals_ = self.pad_data(c_vals, c_dims, m)
-            cl_vals = p["cl_features"]
-            cl_vals_ = self.pad_data(cl_vals, cl_dims, m)
-            labels.append(int(p["label"]))
-            customer_vectors.append(c_vals_)
-            claim_vectors.append(cl_vals_)
-            policy_vectors.append(p_v)
+        test_policy_df = policy_norm.join(results, [policy.policy_id == results.policy_id])\
+                    .join(claim_, [policy.policy_id == claim_.policy_id], "left_outer")\
+                    .join(customer_, [policy.policy_id == customer_.policy_id], "left_outer")\
+                    .select(results.policy_id, policy_norm.all_features, claim_.cl_features, customer_.cus_features)
+
+        policies = policy_df.collect()
+        test_policies = test_policy_df.collect()
+
+        train_data = self.get_data_from_df(policies)
+        test_data = self.get_data_from_df(test_policies)
     
-        return policy_vectors, claim_vectors, customer_vectors, labels
+        return train_data, test_data

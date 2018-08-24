@@ -43,7 +43,6 @@ def split_data(data, per):
     return (train_pol, train_cl, train_c, train_lb), (test_pol, test_cl, test_c, test_lb)
 
 def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
-    gpu_options = None
     if "gpu" in device:
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction)
         os.environ["CUDA_VISIBLE_DEVICES"]= gpu_devices
@@ -53,38 +52,33 @@ def get_gpu_options(device="", gpu_devices="", gpu_fraction=None):
 def main(prefix="", url_feature="", url_weight=""):
     if not url_feature:
         engine = SparkEngine()
-        data = engine.process_vectors()
-        train, test = split_data(data, 0.8)
-        utils.save_file("data/data.bin", (train, test))
+        train_data, test_data = engine.process_vectors()
+        utils.save_file("data/data.bin", (train_data, test_data))
     else:
         data = utils.load_file(url_feature)
-        train, test = data
-    train, valid = split_data(train, 0.8)
+        train_data, test_data = data
+    train, valid = split_data(train_data, 0.8)
     model = Model()
-    with tf.device('/cpu'):
+    with tf.device('/gpu:3'):
         model.init_ops()
         print('==> initializing variables')
         init = tf.global_variables_initializer()
         saver = tf.train.Saver()
     
-    tconfig = get_gpu_options()
+    tconfig = get_gpu_options("gpu", "3,4")
  
     with tf.Session(config=tconfig) as session:
         sum_dir = 'summaries/train_' + time.strftime("%Y_%m_%d_%H_%M")
         train_writer = tf.summary.FileWriter(sum_dir, session.graph)
         session.run(init)
         best_val_epoch = 0
-        prev_epoch_loss = float('inf')
         best_val_loss = float('inf')
-        best_val_accuracy = 0.0
-        best_overall_val_loss = float('inf')
 
         if url_weight:
             print('==> restoring weights')
             saver.restore(session, '%s' % url_weight)
 
         print('==> starting training')
-        val_losses, val_acces, best_preds, best_lb = [], [], [], []
         for i in xrange(p.total_iteration):
             print('Epoch {}'.format(i))
             start = time.time()
@@ -104,7 +98,7 @@ def main(prefix="", url_feature="", url_weight=""):
             print('Total time: {}'.format(time.time() - start))
         
         model.batch_size = 1
-        _, tf1_score, preds = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
+        _, tf1_score, preds = model.run_epochs(test_data, session,  i * p.total_iteration, train_writer, train=False)
         print('f1_score: {}'.format(tf1_score))
         tmp = array_to_str(preds)
         save_file("prediction.txt", tmp)

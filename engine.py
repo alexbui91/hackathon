@@ -185,7 +185,8 @@ class SparkEngine():
                     .withColumn("v03", self.udf_float(col("v03")).cast("double"))\
                     .withColumn("v04", self.udf_float(col("v04")).cast("double"))\
                     .na.fill(0, pint)\
-                    .na.fill(0.0, self.getDoubleType(self.policy_schema))
+                    .na.fill(0.0, self.getDoubleType(self.policy_schema))\
+                    .na.fill("BLANK", self.policy_cols_onehot)
         policy_norm = self.normalize_vector(policy, self.policy_cols_norm)
         
         if policy_one_hot:

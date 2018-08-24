@@ -106,7 +106,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
 def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True):
     if not url_feature:
         engine = SparkEngine()
-        test_data = engine.get_test_data()
+        test_data = engine.get_test_data(policy_one_hot)
         utils.save_file("data/test_data_%s.bin" % prefix, test_data)
     else:
         test_data = utils.load_file(url_feature)

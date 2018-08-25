@@ -128,7 +128,8 @@ class SparkEngine():
                 labels.append(int(p["label"]))
             customer_vectors.append(c_vals_)
             claim_vectors.append(cl_vals_)
-            policy_vectors.append(p_v.append(l_cl))
+            p_v.append(l_cl)
+            policy_vectors.append(p_v)
             policy_ids.append(p_id)
         return policy_vectors, claim_vectors, customer_vectors, labels, policy_ids
 
@@ -159,7 +160,7 @@ class SparkEngine():
         claim_norm = self.normalize_vector(claim, clcols_norm)
         claim_norm = self.onehot_encode(claim_norm, self.claim_cols_onehot)
         claim_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.claim_cols_onehot], outputCol="all_features")
-        claim_norm = claim_assem.transform(claim_norm).select(col("policy_id"), col("c00"), col("z03"), col("all_features").alias("cl_features"))
+        claim_norm = claim_assem.transform(claim_norm).select(col("policy_id"), col("z03"), col("all_features").alias("cl_features"))
         
         customer = self.spark.read.format("csv").option("header", "true").schema(self.customer_schema).load(p2)\
                     .filter(col("policy_id").isNotNull()) \
@@ -188,7 +189,7 @@ class SparkEngine():
             ccols_norm = self.customer_cols_norm[1:]
         else:
             ccols_norm = self.customer_cols_norm
-        customer_norm = self.normalize_vector(customer, ccols_norm).select(col("policy_id"), col("c00"), col("z01"), col("features").alias("cus_features"))
+        customer_norm = self.normalize_vector(customer, ccols_norm).select(col("policy_id"), col("z01"), col("features").alias("cus_features"))
         
         pint = self.getIntegerType(self.policy_schema)
         del pint[0]
@@ -210,8 +211,8 @@ class SparkEngine():
             policy_assem = VectorAssembler(inputCols=["features"] + [x + "_vector" for x in self.policy_cols_onehot], outputCol="all_features")    
             policy_norm = policy_assem.transform(policy_norm).select(col("policy_id"), col("all_features").alias("features"))
 
-        claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("features")).select("policy_id", "c00", "features")
-        customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("features")).select("policy_id", "c00", "features")
+        claim_ = claim_norm.groupBy(col("policy_id")).agg(collect_list("cl_features").alias("features")).select("policy_id", "features")
+        customer_ = customer_norm.groupBy(col("policy_id")).agg(collect_list("cus_features").alias("features")).select("policy_id", "features")
 
         claim_data = claim_.collect()
         customer_data = customer_.collect()

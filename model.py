@@ -56,10 +56,13 @@ class Model():
             elif self.net == 3:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_2", activation=tf.nn.tanh)
-            else:
+            elif self.net == 4:
                 hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_2", activation=tf.nn.tanh)
                 hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/4, name="policy_hidden_3", activation=tf.nn.tanh)
+            else:
+                hidden = tf.layers.dense(inputs, units=self.hidden_layer_size, name="policy_hidden_1", activation=tf.nn.tanh)
+                hidden = tf.layers.dense(hidden, units=self.hidden_layer_size/2, name="policy_hidden_2", activation=tf.nn.tanh)
 
             opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             if self.loss_function == "softmax":

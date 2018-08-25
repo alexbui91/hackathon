@@ -140,20 +140,16 @@ def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         session.run(init)
         if "|" in url_weight:
             urls = url_weight.split("|")
-            final_preds = []
-            final_probs = []
+            final_preds = [0] * 4000
+            # final_probs = []
             for i, u in enumerate(urls):
                 saver.restore(session, '%s' % u)
-                _, _, preds, probs = model.run_epochs(test_data, session, 0, None, train=False)
-                if not i:
-                    final_preds = preds
-                    final_probs = probs
-                else:
-                    i = 0
-                    for x, y in zip(final_probs, probs):
-                        if x < y:
-                            final_preds[i] = probs[i]
-                        i += 1
+                _, _, preds, _ = model.run_epochs(test_data, session, 0, None, train=False)
+                for i in xrange(4000):
+                    final_preds[i] += preds[i]
+            final_preds = np.asarray(final_preds, dtype=np.float32)
+            final_preds = final_preds * 1.0 / len(urls)
+            final_preds = final_preds.tolist()
             tmp = array_to_str(policy_ids, final_preds)
             save_file("prediction_%s.txt" % prefix, tmp)
         else:
@@ -190,7 +186,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--data_path")
     parser.add_argument("-w", "--weight")
     parser.add_argument("-t", "--test", type=int, default=0)
-    parser.add_argument("-o", "--one_hot_policy", type=int, default=1)
+    parser.add_argument("-o", "--one_hot_policy", type=int, default=0)
     parser.add_argument("-n", "--net", type=int, default=1)
     parser.add_argument("-l", "--loss_function", default="sigmoid")
     parser.add_argument("-c", "--cancel_out", default=0, type=int)

@@ -137,8 +137,8 @@ class SparkEngine():
             c00 = c["c00"]
             c_features = c["features"]
             if c00:
-                tmp = sorted(zip(c00, c_features))
-                c_features = [x[1] for x in c_features]
+                tmp = sorted(zip(c00, c_features), reverse=True)
+                c_features = [x[1] for x in tmp]
             c_dict[int(c["policy_id"])] = c_features
         return c_dict
 

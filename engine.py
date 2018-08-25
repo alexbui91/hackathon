@@ -117,28 +117,29 @@ class SparkEngine():
                 c_vals = customer[p_id]
             else:
                 c_vals = []
-            c_vals_ = self.pad_data(c_vals[:n], c_dims, n)
+            c_vals_ = self.pad_data(c_vals, c_dims, n)
             if p_id in claim:
                 cl_vals = claim[p_id]
             else:
                 cl_vals = []
-            cl_vals_ = self.pad_data(cl_vals[:m], cl_dims, m)
+            l_cl = float(len(cl_vals)) / m
+            cl_vals_ = self.pad_data(cl_vals, cl_dims, m)
             if "label" in p:
                 labels.append(int(p["label"]))
             customer_vectors.append(c_vals_)
             claim_vectors.append(cl_vals_)
-            policy_vectors.append(p_v)
+            policy_vectors.append(p_v.append(l_cl))
             policy_ids.append(p_id)
         return policy_vectors, claim_vectors, customer_vectors, labels, policy_ids
 
     def switch_dict(self, data):
         c_dict = {}
         for c in data:
-            c00 = c["c00"]
             c_features = c["features"]
-            if c00:
-                tmp = sorted(zip(c00, c_features), reverse=True)
-                c_features = [x[1] for x in tmp]
+            # c00 = c["c00"]
+            # if c00:
+            #     tmp = sorted(zip(c00, c_features), reverse=True)
+            #     c_features = [x[1] for x in tmp]
             c_dict[int(c["policy_id"])] = c_features
         return c_dict
 

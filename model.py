@@ -82,9 +82,9 @@ class Model():
         else:
             l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
         l = tf.reduce_mean(l)
-        for v in tf.trainable_variables():
-            if not 'bias' in v.name.lower():
-                l += 0.0001 * tf.nn.l2_loss(v)
+        # for v in tf.trainable_variables():
+        #     if not 'bias' in v.name.lower():
+        #         l += 0.0001 * tf.nn.l2_loss(v)
         return l
     
     def apply_gradients(self, opt, losses):

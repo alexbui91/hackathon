@@ -150,22 +150,35 @@ def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
             final_preds = np.asarray(final_preds, dtype=np.float32)
             final_preds = final_preds * 1.0 / len(urls)
             final_preds = final_preds.tolist()
-            tmp = array_to_str(policy_ids, final_preds)
-            save_file("prediction_%s.txt" % prefix, tmp)
+            save_right_preds(prefix, policy_ids, final_preds)
         else:
             print('==> restoring weights')
             saver.restore(session, '%s' % url_weight)
             _, _, preds, _ = model.run_epochs(test_data, session, 0, None, train=False)
-            tmp = array_to_str(policy_ids, preds)
-            save_file("prediction_%s.txt" % prefix, tmp)
+            save_right_preds(prefix, policy_ids, preds)
 
 
-def convert_prediction(pred_path):
+def save_right_preds(prefix, policy_ids, preds):
+    pr_dict = dict()
+    for x, y in zip(policy_ids, preds):
+        pr_dict[int(x)] = int(y)
+    tmp = "policy_id,label\n"
+    data = get_abs_preds()
+    for i in data:
+        tmp += "%i, %i\n" % (i, pr_dict[i])
+    save_file("prediction_%s.csv" % prefix, tmp)
+
+
+def get_abs_preds():
     path = "release/result.csv"    
     with open(path) as f:
         data = f.readlines()
         data = [int(x.rstrip("\n")) for x in data[1:]]
+    return data
 
+
+def convert_prediction(pred_path):
+    data = get_abs_preds()
     pr_dict = dict()
     with open(pred_path) as f:
         preds = f.readlines()
@@ -196,6 +209,7 @@ if __name__ == "__main__":
     python main.py -f data/train_data_None_net.bin -n 3 -p "complex_net_tanh" -o 0
     for testing:
     python main.py -f data/test_data.bin -t 1 -n 2 -p "complex_2" -o 0 -w weights/complex_net_2.weights
+    python main.py -f data/test_data.bin -t 1 -n 3 -p "complex_en" -o 0 -w "weights/complex_sigmoid_f1_3.weights|weights/complex_net_tanh.weights|weights/complex_sigmoid_l2_3.weights"
     """
     args = parser.parse_args()
     if args.test == 1:

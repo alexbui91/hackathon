@@ -10,7 +10,7 @@ import time
 import argparse
 
 from model import Model
-from engine import SparkEngine
+#from engine import SparkEngine
 import utils
 import properties as p
 
@@ -83,9 +83,9 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
         for i in xrange(p.total_iteration):
             print('Epoch {}'.format(i))
             start = time.time()
-            train_loss, f1_score, _ = model.run_epochs(train, session, i * p.total_iteration, train_writer)
+            train_loss, f1_score, _, _ = model.run_epochs(train, session, i * p.total_iteration, train_writer)
             print('Training loss: {} | f1_score {}'.format(train_loss, f1_score))
-            valid_loss, vf1_score, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
+            valid_loss, vf1_score, _, _ = model.run_epochs(valid, session,  i * p.total_iteration, train_writer, train=False)
             print('Validation loss: {} | f1_score {}'.format(valid_loss, vf1_score))
             if early_stopping == "loss":
                 if valid_loss < best_val_loss:
@@ -99,7 +99,7 @@ def main(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
                 if vf1_score > best_score or valid_loss < best_val_loss:
                     if vf1_score > best_score:
                         best_score = vf1_score
-                    if valid_loss < best_val_loss
+                    if valid_loss < best_val_loss:
                         best_val_loss = valid_loss
                     best_val_epoch = i
                     print('Saving weights')
@@ -138,13 +138,30 @@ def test(prefix="zhongan", url_feature="", url_weight="", policy_one_hot=True, n
  
     with tf.Session(config=tconfig) as session:
         session.run(init)
-        if url_weight:
+        if "|" in url_weight:
+            urls = url_weight.split("|")
+            final_preds = []
+            final_probs = []
+            for i, u in enumerate(urls):
+                saver.restore(session, '%s' % u)
+                _, _, preds, probs = model.run_epochs(test_data, session, 0, None, train=False)
+                if not i:
+                    final_preds = preds
+                    final_probs = probs
+                else:
+                    i = 0
+                    for x, y in zip(final_probs, probs):
+                        if x < y:
+                            final_preds[i] = probs[i]
+                        i += 1
+            tmp = array_to_str(policy_ids, final_preds)
+            save_file("prediction_%s.txt" % prefix, tmp)
+        else:
             print('==> restoring weights')
             saver.restore(session, '%s' % url_weight)
-        
-        _, _, preds = model.run_epochs(test_data, session, 0, None, train=False)
-        tmp = array_to_str(policy_ids, preds)
-        save_file("prediction_%s.txt" % prefix, tmp)
+            _, _, preds, _ = model.run_epochs(test_data, session, 0, None, train=False)
+            tmp = array_to_str(policy_ids, preds)
+            save_file("prediction_%s.txt" % prefix, tmp)
 
 
 def convert_prediction(pred_path):

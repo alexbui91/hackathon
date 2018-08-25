@@ -65,22 +65,32 @@ class Model():
             if self.loss_function == "softmax":
                 output = tf.squeeze(tf.layers.dense(hidden, units=2, name="output_hidden", activation=None))
                 if not self.is_test:
-                    hidden = tf.nn.dropout(hidden, self.dropout_placeholder)
-                    l = tf.losses.sparse_softmax_cross_entropy(self.pred_labels, output)
-                    self.losses = tf.reduce_mean(l)
-                    gd = opt.compute_gradients(self.losses)
-                    self.train_op = opt.apply_gradients(gd)
+                    self.losses = self.get_loss(output)
+                    self.train_op = self.apply_gradients(opt, self.losses)
                     probs = tf.nn.softmax(output)
                     self.preds = tf.argmax(probs, 1)
             else:
                 output = tf.squeeze(tf.layers.dense(hidden, units=1, name="output_hidden", activation=None))
                 if not self.is_test:
-                    l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
-                    self.losses = tf.reduce_mean(l)
-                    gd = opt.compute_gradients(self.losses)
-                    self.train_op = opt.apply_gradients(gd)
+                    self.losses = self.get_loss(output)
+                    self.train_op = self.apply_gradients(opt, self.losses)
                 self.preds = tf.nn.sigmoid(output)
 
+    def get_loss(self, output):
+        if self.loss_function == "softmax":
+            l = tf.losses.sparse_softmax_cross_entropy(self.pred_labels, output)
+        else:
+            l = tf.losses.sigmoid_cross_entropy(self.pred_labels, output)
+        l = tf.reduce_mean(l)
+        for v in tf.trainable_variables():
+            if not 'bias' in v.name.lower():
+                l += 0.0001 * tf.nn.l2_loss(v)
+        return l
+    
+    def apply_gradients(self, opt, losses):
+        gd = opt.compute_gradients(self.losses)
+        return opt.apply_gradients(gd)
+    
     def get_attention(self, inputs):
         # batch_size x length x 128
         cl_ = tf.layers.dense(inputs, units=self.hidden_layer_size, name="hidden_layer", activation=tf.nn.relu)
@@ -101,6 +111,7 @@ class Model():
         total_steps = dt_length // self.batch_size
         total_loss = 0.0
         preds = []
+        probs = []
         policy, claim, customer, labels = data
 
         for step in xrange(total_steps):
@@ -128,6 +139,7 @@ class Model():
                 preds += [int(x) for x in pred]
             else:
                 preds += [1 if x >= 0.5 else 0 for x in pred]
+                probs += [float(x) for x in pred]
         
         if not self.is_test:
             sys.stdout.write("\r")
@@ -148,5 +160,5 @@ class Model():
                 summary.value.add(tag=name, simple_value=(total_loss / total_steps))
                 train_writer.add_summary(summary, num_epoch)
         
-        return total_loss, score, preds
+        return total_loss, score, preds, probs
                 
